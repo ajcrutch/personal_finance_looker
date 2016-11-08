@@ -67,6 +67,28 @@ view: transactions {
     sql: ${TABLE}.Description ;;
   }
 
+  dimension: description_bucketed {
+    type: string
+   sql:
+    CASE WHEN ${description} LIKE '%offee%' OR ${description} LIKE '%tarbucks%' OR ${description} LIKE '%Blue Bottle%'  THEN "Coffee"
+    WHEN ${description} LIKE '%rader Joe%' OR ${description} LIKE '%CVS%' OR ${description} LIKE '%Safeway%'  THEN "Groceries"
+    WHEN ${description} LIKE '%Parking%' OR ${description} = 'Santa Cruz Pay'  THEN "Parking"
+    WHEN ${description} = 'Costco Gas' OR ${description} = 'Shell' OR  ${description} LIKE '% 76'THEN "Gasoline"
+    WHEN ${description} = 'Caltrain' OR ${description} = 'Lyft' OR  lower(${description}) LIKE '%uber%'THEN "Transportation"
+    WHEN ${description} = 'Box Inc' OR ${description} = 'Spotify' OR ${description} = 'Hulu' OR lower(${description}) LIKE '%eadspace%' THEN "Subscriptions"
+    ELSE "Other"
+    END ;;
+  }
+
+  dimension: necessary_vs_unnecessary {
+    type: string
+    sql: CASE WHEN lower(${description}) = 'acs' OR lower(${description}) LIKE '%ATM%'
+    OR lower(${description}) LIKE 'check %' OR lower(${description_bucketed}) = 'Parking' OR lower(${description_bucketed}) = 'Gasoline' OR lower(${description_bucketed}) = 'Groceries' THEN 'Necessary'
+    ELSE "Unnecessary"
+    END ;;
+  }
+
+
   dimension: labels {
     type: string
     sql: ${TABLE}.Labels ;;
@@ -90,12 +112,53 @@ view: transactions {
   measure: count {
     type: count
     drill_fields: [account_name]
+    html:  <p style="font-weight: bold">{{rendered_value}}</p> ;;
   }
 
-  measure: total_amount {
+  measure: total_amount_raw {
     type: sum
     sql: ${amount} ;;
     value_format_name: usd
     drill_fields: [created_date, amount, description]
+    html:
+    {% if value > 0 %}
+      <p style="color: #45BF55; font-weight: bold">{{ rendered_value }}</p>
+    {% elsif value < 0 %}
+      <p style="color: #E52D21; font-weight: bold">{{ rendered_value }}</p>
+    {% else %}
+      <p style="color: black; font-size:100%; text-align:center">{{ rendered_value }}</p>
+    {% endif %}
+     ;;
   }
+
+  measure: total_amount_only_spending {
+    type: sum
+    sql: ${amount} ;;
+    value_format_name: usd
+    drill_fields: [created_date, amount, description]
+    filters: {
+      field: amount
+      value: "< 0"
+    }
+    html:
+    {% if value > 0 %}
+      <p style="color: #45BF55; font-weight: bold">{{ rendered_value }}</p>
+    {% elsif value < 0 %}
+      <p style="color: #E52D21; font-weight: bold">{{ rendered_value }}</p>
+    {% else %}
+      <p style="color: black; font-weight: bold">{{ rendered_value }}</p>
+    {% endif %}
+     ;;
+  }
+
+  measure: amount_spent_per_transaction {
+    type: number
+    sql: ${total_amount_only_spending} / ${count} ;;
+    value_format_name: usd
+    drill_fields: [created_date, amount, description]
+    html:
+      <p style="color: #E52D21; font-weight: bold">{{ rendered_value }}</p>
+     ;;
+  }
+
 }
