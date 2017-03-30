@@ -55,7 +55,7 @@ filter: time {
     sql: ${TABLE}.projected_date ;;
   }
 
-  dimension: raw_shit {
+  dimension: raw_shit { #deal with mint's shitty date formatting CUMAGIC
     type: string
     sql:CASE WHEN ${account_name} = 'Matadors 76' OR ${account_name} = 'Matadors 15' THEN (concat(RIGHT(transactions.Date, 4), '-', CASE WHEN length(SUBSTRING(transactions.Date, 1, length(transactions.Date) - length(substring(transactions.Date,2,8)))) = 1 THEN concat('0',SUBSTRING(transactions.Date, 1, length(transactions.Date) - length(substring(transactions.Date,2,8))))
       ELSE substring(transactions.Date, 1, 2)
