@@ -1,4 +1,4 @@
-connection: "congress"
+connection: "personal_bq"
 
 # include all the views
 include: "*.view"
